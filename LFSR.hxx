@@ -5,8 +5,9 @@
 #include <algorithm>
 #include <optional>
 #include <iostream>
-#include <queue>
+#include <deque>
 #include <cmath>
+#include <set>
 using namespace std;
 
 /** @brief indexes holder
@@ -17,9 +18,9 @@ using namespace std;
  */
 struct LFSR_indexes
 {
-  const map< unsigned short, unsigned short >indexes_list;
+  const map< unsigned short, unsigned long >indexes_list;
   LFSR_indexes();
-  optional< const unsigned short >operator[]( const unsigned short& );
+  optional< const unsigned long >operator[]( const unsigned short& );
 };
 
 /** @brief Parameters of the system
@@ -35,11 +36,11 @@ struct LFSR_indexes
 struct LFSR_parameters
 {
   const unsigned short& number_bits;
-  const unsigned short& indexes;
+  const unsigned long& indexes;
   bitset<24>initial_state;
   // pickup list
   LFSR_parameters()=delete;
-  LFSR_parameters( const unsigned short&number_bits, const unsigned short&indexes );
+  LFSR_parameters( const unsigned short&number_bits, const unsigned long&indexes );
 };
 /** @brief extracts the outputs from the LFSR
  *
@@ -48,17 +49,25 @@ struct LFSR_parameters
  */
 struct LFSR_extract
 {
-  const map< string, queue< unsigned short > >extract_data;
+  const map< string, deque< unsigned short > >extract_data;
   explicit LFSR_extract();
+  optional<pair<const unsigned short, const unsigned short> > test_and_required_bits()const;
 };
 /** @brief Computation of histograms
  *
  * This class is intended to test the software and its data (indexes).
  */
-struct LFSR_histo
+class LFSR_histo
 {
   map< unsigned long, unsigned long> histo;
+public:
   void operator()(const unsigned long&);
+  /** @brief Get statistics of the histogram
+   *
+   * Despite classics statistics, with average, std deviation, dyss, flatness,
+   *   this function checks if all the keys have the same number of occurrences.\n
+   */
+  deque<pair<string, unsigned long> >GetStatistics()const;
   friend ostream&operator<<(ostream&,const LFSR_histo&);
 };
 
@@ -70,15 +79,12 @@ class LFSR_iterator
 {
   const LFSR_parameters&LFSR_init;
   const LFSR_extract&extract;
-  unsigned short nbreRuns;
+  unsigned long nbreRuns;
   bitset<24>current_state;
   bitset<24>maskXor;
-  // Counting the occurrences
-  // At the end all values should have occurred exactly N times.
-  vector<unsigned short>occurances_count;
   LFSR_iterator()=delete;
 public:
   LFSR_iterator( const LFSR_parameters&LFSR_init, const LFSR_extract&extract );
-  const unsigned short operator()();
+  const unsigned long operator()();
   const bitset<24>GetState()const;
 };
