@@ -29,7 +29,7 @@ LFSR_indexes::LFSR_indexes():
     })
 {}	  
 
-optional< const unsigned long >LFSR_indexes::operator[]( const unsigned short&bits )
+optional< const LFSR_indexes::LFSR_type >LFSR_indexes::operator[]( const unsigned short&bits )
 {
   auto it = indexes_list.find( bits );
   // perhaps, in a far future, we are going to have a find that do the job directly
@@ -39,7 +39,7 @@ optional< const unsigned long >LFSR_indexes::operator[]( const unsigned short&bi
 	return nullopt;
 }
 
-LFSR_parameters::LFSR_parameters( const unsigned short&number_bits, const unsigned long &indexes ):
+LFSR_parameters::LFSR_parameters( const unsigned short&number_bits, const LFSR_indexes::LFSR_type &indexes ):
   number_bits( number_bits ), indexes( indexes )
 {
   // Temporary
@@ -83,7 +83,7 @@ optional<pair<const unsigned short,const unsigned short> > LFSR_extract::test_an
 }
 
 
-void LFSR_histo::operator()(const unsigned long&a)
+void LFSR_histo::operator()(const LFSR_indexes::LFSR_type&a)
 {
   auto histo_iter = histo.find( a );
   if ( histo_iter != histo.end() )
@@ -99,7 +99,7 @@ deque<pair<string, unsigned long> >LFSR_histo::GetStatistics()const
   unsigned long the_sum = 0;
   unsigned long the_N = 0;
 
-  for_each( histo.begin(), histo.end(), [&](const pair<unsigned long,unsigned long>&a){
+  for_each( histo.begin(), histo.end(), [&](const pair<LFSR_indexes::LFSR_type,unsigned long>&a){
 	  the_sum+=a.second;
 	  the_N += 1;
 	});
@@ -138,63 +138,26 @@ LFSR_iterator::LFSR_iterator( const LFSR_parameters&LFSR_init, const LFSR_extrac
 {}
 
 
-const unsigned long LFSR_iterator::operator()()
+const LFSR_indexes::LFSR_type LFSR_iterator::operator()()
 {
   // Select the bits that should be involved in the XOR
-  bitset<24>maskedState = current_state & maskXor;
+  bitset<numeric_limits<LFSR_indexes::LFSR_type>::digits >maskedState = current_state & maskXor;
   bool xor_result = false;
   if ( maskedState.count() % 2 == 1 )
 	xor_result = true;
 
   // Got problems with g++13 then do it by hands
   //current-State = rotr( currentState, 1 );
-  for ( unsigned long ind = 1; ind < LFSR_init.number_bits ; ind++ )
+  for ( unsigned short ind = 1; ind < LFSR_init.number_bits ; ind++ )
 	current_state[ ind - 1 ] = current_state[ ind ];
   current_state[ LFSR_init.number_bits - 1 ] = xor_result;
 
   nbreRuns += 1;
   return nbreRuns;
 }
-const bitset<24>LFSR_iterator::GetState()const
+const bitset<numeric_limits<LFSR_indexes::LFSR_type>::digits >LFSR_iterator::GetState()const
 {
   return current_state;
 }
 
 
-int main()
-{
-  unsigned short nbreBits=24;
-  LFSR_histo theHisto;
-
-  optional< const unsigned long >indexes=LFSR_indexes()[ nbreBits ];
-
-  if ( indexes.has_value() )
-	{
-	  LFSR_parameters theData( nbreBits , *indexes );
-
-	  LFSR_iterator LFSR_parameters_iter(theData, LFSR_extract() );
-	  unsigned long iter_count;
-
-	  cout << LFSR_parameters_iter.GetState() << ", now run"<<endl;
-	  for ( unsigned long ind = 0 ; ind < ( pow( 2, nbreBits ) -1 ); ind++)
-		{
-		  iter_count = LFSR_parameters_iter();
-		  //		  cout << LFSR_parameters_iter.GetState() << "   ";
-		  // cout << iter_count << endl;
-		  theHisto( ( LFSR_parameters_iter.GetState()).to_ulong());
-		}
-
-	  //	  cout<<theHisto<<endl;
-	  deque<pair<string, unsigned long> >histo_result;
-	  histo_result = theHisto.GetStatistics();
-	  for( auto histo_info : histo_result )
-		cout << histo_info.first << ": " << histo_info.second << "\t";
-	  cout << endl;
-
-	  
-
-	}else
-	cerr << "Sorry, we don't have the data for this number of bits" << endl;
-
-  return 0;
-}

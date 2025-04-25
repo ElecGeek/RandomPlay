@@ -8,6 +8,7 @@
 #include <deque>
 #include <cmath>
 #include <set>
+#include <limits>
 using namespace std;
 
 /** @brief indexes holder
@@ -18,9 +19,12 @@ using namespace std;
  */
 struct LFSR_indexes
 {
-  const map< unsigned short, unsigned long >indexes_list;
+  /** Defines the maximum size of the LFSR counter
+   */
+  using LFSR_type = unsigned long;
+  const map< unsigned short, LFSR_type >indexes_list;
   LFSR_indexes();
-  optional< const unsigned long >operator[]( const unsigned short& );
+  optional< const LFSR_type >operator[]( const unsigned short& );
 };
 
 /** @brief Parameters of the system
@@ -36,11 +40,11 @@ struct LFSR_indexes
 struct LFSR_parameters
 {
   const unsigned short& number_bits;
-  const unsigned long& indexes;
-  bitset<24>initial_state;
+  const LFSR_indexes::LFSR_type& indexes;
+  bitset<numeric_limits<LFSR_indexes::LFSR_type>::digits >initial_state;
   // pickup list
   LFSR_parameters()=delete;
-  LFSR_parameters( const unsigned short&number_bits, const unsigned long&indexes );
+  LFSR_parameters( const unsigned short&number_bits, const LFSR_indexes::LFSR_type&indexes );
 };
 /** @brief extracts the outputs from the LFSR
  *
@@ -59,12 +63,12 @@ struct LFSR_extract
  */
 class LFSR_histo
 {
-  map< unsigned long, unsigned long> histo;
+  map< LFSR_indexes::LFSR_type, unsigned long> histo;
 public:
-  void operator()(const unsigned long&);
+  void operator()(const LFSR_indexes::LFSR_type&);
   /** @brief Get statistics of the histogram
    *
-   * Despite classics statistics, with average, std deviation, dyss, flatness,
+   * Despite classics statistics, with average, std deviation, dissymmetry, flatness,
    *   this function checks if all the keys have the same number of occurrences.\n
    */
   deque<pair<string, unsigned long> >GetStatistics()const;
@@ -80,11 +84,11 @@ class LFSR_iterator
   const LFSR_parameters&LFSR_init;
   const LFSR_extract&extract;
   unsigned long nbreRuns;
-  bitset<24>current_state;
-  bitset<24>maskXor;
+  bitset<numeric_limits<LFSR_indexes::LFSR_type>::digits >current_state;
+  bitset<numeric_limits<LFSR_indexes::LFSR_type>::digits >maskXor;
   LFSR_iterator()=delete;
 public:
   LFSR_iterator( const LFSR_parameters&LFSR_init, const LFSR_extract&extract );
-  const unsigned long operator()();
-  const bitset<24>GetState()const;
+  const LFSR_indexes::LFSR_type operator()();
+  const bitset<numeric_limits<LFSR_indexes::LFSR_type>::digits >GetState()const;
 };
